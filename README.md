@@ -53,12 +53,30 @@ By default, Trunk Recorder just dumps a lot of recorded files into a directory. 
 
 * [FAQ](https://github.com/robotastic/trunk-recorder/wiki/FAQ)
 
+## Docker Setup
+
+### Requiments
+* [Docker](https://docs.docker.com/engine/installation/linux/ubuntulinux/)
+  * Unforunately, this only works with Docker for Linux. As far as I know, there is no way to access USB devices on Docker for Windows or Mac.
+* [Docker Compose](https://docs.docker.com/compose/install/)
+
+### Getting Started
+1. Clone or download this repo
+2. Create a `config.json` file in the [`./config`](config/) directory. There are examples in the [`./examples`](examples/) directory and an explation of the settings [here](#configure).
+3. Add a talkgroup file in the [`./config`](config/) directory, if you are using one. You must have at least one `.csv` file present for the Docker container to build, so if you are not using one then just make an empty file. Again example in the [`./examples`](examples/) directory and an explation of the file [here](#talkgroupsFile).
+4. Open your `config.json` and make sure your `captureDir` is set to `media`. Also, make sure your `talkgroupsFile` value starts with `config/` since your CSV will be in the config directory.
+5. `docker-compose build`
+6. `docker-compose up`
+
+### Updating config or talkgroups
+When you make a change to your `config.json` or talkgroups CSV file you need to restart the Docker container. Just run `docker-compose restart` to do that.
+
 ___
 
 ## Configure
 Configuring Trunk Recorder and getting things setup can be rather complex. I am looking to make things simpler in the future.
 
-**config.json**
+### `config.json`
 
 This file is used to configure how Trunk Recorder is setup. It defines the SDRs that are available and the trunk system that will be recorded. Trunk Recorder will look for a *config.json* file in the same directory as it is being run in. You can point it to a different config file by using the *--config* argument on the command line, for example: `./recorder --config=examples/config-wmata-rtl.json`. The following is an example for my local system in DC, using an Ettus B200:
 
@@ -154,7 +172,7 @@ Here are the different arguments:
  - **debugRecorderAddress** - The network address of the computer that will be monitoring the Debug Recorders. UDP packets will be sent from Trunk Recorder to this computer. The default is *"127.0.0.1"* which is the address used for monitoring on the same computer as Trunk Recorder.
 
 
-**talkgroupsFile**
+### `talkgroupsFile`
 
 This file provides info on the different talkgroups in a trunking system. A lot of this info can be found on the [Radio Reference](http://www.radioreference.com/) website. You need to be a Radio Reference member to download the table for your system preformatted as a CSV file. If you are not a Radio Reference member, try clicking on the "List All in one table" link, selecting everything in the table and copying it into Excel or a spreadsheet, and then exporting or saving as a CSV file.
 

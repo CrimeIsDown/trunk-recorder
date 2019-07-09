@@ -1,0 +1,14 @@
+version: '3'
+services:
+  recorder:
+    privileged: true
+    build: .
+    # command: ["./recorder","--config=./config/config.json"]
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/snd:/dev/snd
+    volumes:
+      - ./media:/app/media
+      - ./config:/app/config
+      # If you have a volk profile setup, uncomment this for improved performance
+      # - ~/.volk:/root/.volk
