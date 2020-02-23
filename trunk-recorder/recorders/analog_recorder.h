@@ -40,6 +40,7 @@
 
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 
+#include <gnuradio/audio/sink.h>
 
 class Source;
 class analog_recorder;
@@ -137,6 +138,7 @@ void calculate_iir_taps(double tau);
   gr::blocks::float_to_short::sptr converter;
 
 
+  gr::audio::sink::sptr audio_sink;
   gr::blocks::nonstop_wavfile_sink::sptr wav_sink;
   gr::blocks::copy::sptr valve;
 

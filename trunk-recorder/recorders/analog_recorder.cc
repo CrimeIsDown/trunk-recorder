@@ -1,4 +1,5 @@
 
+#include <boost/algorithm/string.hpp>
 #include "analog_recorder.h"
 #include "../recorder_globals.h"
 #include "../formatter.h"
@@ -176,6 +177,17 @@ analog_recorder::analog_recorder(Source *src)
   high_f_taps =  gr::filter::firdes::high_pass(1, 8000, 300, 50, gr::filter::firdes::WIN_HANN);
   high_f      = gr::filter::fir_filter_fff::make(1, high_f_taps);
 
+  bool enable_audio_sink = false;
+  std::vector<string> device_names;
+  if (const char* env = std::getenv("ANALOG_AUDIO_SINKS")) {
+    enable_audio_sink = true;
+    boost::split(device_names, env, boost::is_any_of(";"));
+  }
+
+  if (enable_audio_sink) {
+    BOOST_LOG_TRIVIAL(info) << "Setting up audio sink for analog recorder number " << rec_num << " with device " << device_names[rec_num] << std::endl;
+    audio_sink = gr::audio::sink::make(8000, device_names[rec_num]);
+  }
 
   if (squelch_db != 0) {
     // using squelch
@@ -192,6 +204,9 @@ analog_recorder::analog_recorder(Source *src)
     connect(high_f,        0, squelch_two,   0);
     connect(squelch_two,   0, levels,        0);
     connect(levels,        0, wav_sink,      0);
+    if (enable_audio_sink) {
+      connect(levels,       0, audio_sink,    0);
+    }
   } else {
     // No squelch used
     connect(self(),        0, valve,         0);
@@ -204,6 +219,9 @@ analog_recorder::analog_recorder(Source *src)
     connect(decim_audio,   0, levels,        0);
     connect(decim_audio,   0, decoder_sink,  0);
     connect(levels,        0, wav_sink,      0);
+    if (enable_audio_sink) {
+      connect(levels,        0, audio_sink,    0);
+    }
   }
 }
 
