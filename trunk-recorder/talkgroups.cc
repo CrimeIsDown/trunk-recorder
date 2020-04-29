@@ -70,8 +70,14 @@ void Talkgroups::load_talkgroups(std::string filename) {
     // TODO(nkw): more sanity checking here.
     priority = (vec.size() == 8) ?  atoi(vec[7].c_str()) : 1;
 
+    char mode = vec[2].at(0);
+    float ctcss = 0;
+    if (mode == 'A') {
+        ctcss = std::stof(vec[1]);
+    }
+
     Talkgroup *tg =
-        new Talkgroup(atoi(vec[0].c_str()), vec[2].at(0), vec[3].c_str(),
+        new Talkgroup(atoi(vec[0].c_str()), ctcss, mode, vec[3].c_str(),
                       vec[4].c_str(), vec[5].c_str(), vec[6].c_str(), priority);
 
     talkgroups.push_back(tg);
@@ -109,6 +115,6 @@ Talkgroup *Talkgroups::find_talkgroup(long tg_number) {
 
 void Talkgroups::add(long num, std::string alphaTag)
 {
-    Talkgroup *tg = new Talkgroup(num, 'X', alphaTag, "", "", "", 0);
+    Talkgroup *tg = new Talkgroup(num, 0, 'X', alphaTag, "", "", "", 0);
     talkgroups.push_back(tg);
 }

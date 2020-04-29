@@ -1238,6 +1238,7 @@ bool monitor_system() {
 
             if (talkgroup) {
               call->set_talkgroup_tag(talkgroup->alpha_tag);
+              call->set_ctcss(talkgroup->ctcss);
             }
 
             if (system->get_system_type() == "conventional") {

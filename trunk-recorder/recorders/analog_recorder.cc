@@ -140,6 +140,8 @@ analog_recorder::analog_recorder(Source *src)
     squelch_two = gr::analog::pwr_squelch_ff::make(-200, 0.01, 0, true);
   }
 
+  // Setting CTCSS frequency and level to 0 to disable squelch at start
+  squelch_ctcss = gr::analog::ctcss_squelch_ff::make(8000, 0, 0, 0, 0, false);
 
   // k = quad_rate/(2*math.pi*max_dev) = 48k / (6.283185*5000) = 1.527
   float quad_gain;
@@ -177,34 +179,34 @@ analog_recorder::analog_recorder(Source *src)
   high_f      = gr::filter::fir_filter_fff::make(1, high_f_taps);
 
 
+  connect(self(),        0, valve,         0);
+  connect(valve,         0, prefilter,     0);
+  connect(prefilter,     0, channel_lpf,   0);
+  connect(channel_lpf,   0, arb_resampler, 0);
+
   if (squelch_db != 0) {
     // using squelch
-    connect(self(),        0, valve,         0);
-    connect(valve,         0, prefilter,     0);
-    connect(prefilter,     0, channel_lpf,   0);
-    connect(channel_lpf,   0, arb_resampler, 0);
     connect(arb_resampler, 0, squelch,       0);
     connect(squelch,       0, demod,         0);
-    connect(demod,         0, deemph,        0);
-    connect(deemph,        0, decim_audio,   0);
-    connect(decim_audio,   0, high_f,        0);
-    connect(decim_audio,   0, decoder_sink,  0);
-    connect(high_f,        0, squelch_two,   0);
-    connect(squelch_two,   0, levels,        0);
-    connect(levels,        0, wav_sink,      0);
   } else {
     // No squelch used
-    connect(self(),        0, valve,         0);
-    connect(valve,         0, prefilter,     0);
-    connect(prefilter,     0, channel_lpf,   0);
-    connect(channel_lpf,   0, arb_resampler, 0);
     connect(arb_resampler, 0, demod,         0);
-    connect(demod,         0, deemph,        0);
-    connect(deemph,        0, decim_audio,   0);
-    connect(decim_audio,   0, levels,        0);
-    connect(decim_audio,   0, decoder_sink,  0);
-    connect(levels,        0, wav_sink,      0);
   }
+
+  connect(demod,         0, deemph,        0);
+  connect(deemph,        0, decim_audio,   0);
+  connect(decim_audio,   0, decoder_sink,  0);
+  connect(decim_audio,   0, squelch_ctcss, 0);
+  connect(squelch_ctcss, 0, high_f,        0);
+
+  if (squelch_db != 0) {
+    connect(high_f, 0, squelch_two, 0);
+    connect(squelch_two, 0, levels, 0);
+  } else {
+    connect(high_f, 0, levels, 0);
+  }
+
+  connect(levels,        0, wav_sink,      0);
 }
 
 analog_recorder::~analog_recorder() {}
@@ -322,6 +324,15 @@ void analog_recorder::start(Call *call) {
   
   talkgroup = call->get_talkgroup();
   chan_freq = call->get_freq();
+
+  float tone = call->get_ctcss();
+  squelch_ctcss->set_frequency(tone);
+  if (tone != 0) {
+    squelch_ctcss->set_level(0.001);
+    BOOST_LOG_TRIVIAL(trace) << "Recorder for conventional freq " << FormatFreq(chan_freq) << " has " << squelch_ctcss->frequency() << " PL squelch";
+  } else {
+    squelch_ctcss->set_level(0);
+  }
 
   prefilter->set_center_freq(chan_freq - center_freq);
 

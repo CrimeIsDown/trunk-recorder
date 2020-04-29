@@ -32,6 +32,7 @@
 #include <gnuradio/filter/iir_filter_ffd.h>
 #include <gnuradio/filter/fft_filter_ccf.h>
 
+#include <gnuradio/analog/ctcss_squelch_ff.h>
 #include <gnuradio/analog/quadrature_demod_cf.h>
 #include <gnuradio/analog/pwr_squelch_cc.h>
 #include <gnuradio/analog/pwr_squelch_ff.h>
@@ -133,6 +134,7 @@ void calculate_iir_taps(double tau);
   gr::filter::fir_filter_fff::sptr high_f;
   gr::analog::pwr_squelch_cc::sptr squelch;
   gr::analog::pwr_squelch_ff::sptr squelch_two;
+  gr::analog::ctcss_squelch_ff::sptr squelch_ctcss;
   gr::analog::quadrature_demod_cf::sptr demod;
   gr::blocks::float_to_short::sptr converter;
 
