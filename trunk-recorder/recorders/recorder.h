@@ -87,6 +87,7 @@ struct DecimSettings
 	virtual Rx_Status get_rx_status() {Rx_Status rx_status={0,0,0}; return rx_status; }
 	virtual bool is_active() {return false;};
 	virtual bool is_analog() {return false;};
+	virtual bool is_p25c() {return false;};
 	virtual bool is_idle() {return true;};
 	virtual double get_current_length(){return 0;};
 	virtual void clear(){};
