@@ -9,14 +9,17 @@ RUN apt-get update && \
     build-essential \
     ca-certificates \
     cmake \
+    curl \
     docker.io \
     fdkaac \
+    ffmpeg \
     git \
     gnupg \
     gnuradio \
     gnuradio-dev \
     gr-funcube \
     gr-iqbal \
+    jq \
     libairspy-dev \
     libairspyhf-dev \
     libbladerf-dev \

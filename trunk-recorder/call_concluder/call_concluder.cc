@@ -186,7 +186,7 @@ Call_Data_t upload_call_worker(Call_Data_t call_info) {
 
     // Handle the Upload Script, if set
     if (call_info.upload_script.length() != 0) {
-      shell_command << call_info.upload_script << " " << call_info.filename << " " << call_info.status_filename << " " << call_info.converted;
+      shell_command << call_info.upload_script << " " << call_info.filename << " " << call_info.status_filename << " " << call_info.converted << " &";
       shell_command_string = shell_command.str();
 
       BOOST_LOG_TRIVIAL(info) << "[" << call_info.short_name << "]\t\033[0;34m" << call_info.call_num << "C\033[0m \t Running upload script: " << shell_command_string;
