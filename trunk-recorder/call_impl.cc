@@ -30,6 +30,8 @@ Call *Call::make(TrunkMessage message, System *s, Config c) {
 Call_impl::Call_impl(long t, double f, System *s, Config c) {
   config = c;
   call_num = call_counter++;
+  noise = 999;
+  signal = 999;
   final_length = 0;
   idle_count = 0;
   curr_freq = 0;
@@ -60,6 +62,8 @@ Call_impl::Call_impl(long t, double f, System *s, Config c) {
 Call_impl::Call_impl(TrunkMessage message, System *s, Config c) {
   config = c;
   call_num = call_counter++;
+  noise = 999;
+  signal = 999;
   final_length = 0;
   idle_count = 0;
   curr_src_id = -1;
@@ -127,7 +131,15 @@ void Call_impl::conclude_call() {
 
 
     if (this->is_conventional()) {
-        BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name() << "]\t\033[0;34m" << this->get_call_num() << "C\033[0m\tTG: " << this->get_talkgroup_display() << "\tFreq: " << format_freq(get_freq()) << "\t\u001b[33mConcluding Recorded Call\u001b[0m - Last Update: " << this->since_last_update() << "s\tRecorder last write:" << recorder->since_last_write() << "\tCall Elapsed: " << this->elapsed() << "\tDetected RSSI: " << this->recorder->get_rssi();
+      // Update the signal and noise levels for the call
+      // the squelch could be open if the program is being forced to stop
+      if (this->get_recorder()->is_idle()) {
+        this->set_noise(this->get_recorder()->get_pwr());
+      } else {
+        this->set_signal(this->get_recorder()->get_pwr());
+      }
+
+        BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name() << "]\t\033[0;34m" << this->get_call_num() << "C\033[0m\tTG: " << this->get_talkgroup_display() << "\tFreq: " << format_freq(get_freq()) << "\t\u001b[33mConcluding Recorded Call\u001b[0m - Last Update: " << this->since_last_update() << "s\tRecorder last write:" << recorder->since_last_write() << "\tCall Elapsed: " << this->elapsed() << "\t Signal: " << floor(this->get_signal()) << "dBm\t Noise: " << floor(this->get_noise()) << "dBm";
     } else {
         BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name() << "]\t\033[0;34m" << this->get_call_num() << "C\033[0m\tTG: " << this->get_talkgroup_display() << "\tFreq: " << format_freq(get_freq()) << "\t\u001b[33mConcluding Recorded Call\u001b[0m - Last Update: " << this->since_last_update() << "s\tRecorder last write:" << recorder->since_last_write() << "\tCall Elapsed: " << this->elapsed();
     }
@@ -287,6 +299,22 @@ bool Call_impl::get_mode() {
 
 bool Call_impl::get_duplex() {
   return duplex;
+}
+
+double Call_impl::get_signal() {
+  return signal;
+}
+
+double Call_impl::get_noise() {
+  return noise;
+}
+
+void Call_impl::set_signal(double s) {
+  signal = s;
+}
+
+void Call_impl::set_noise(double n) {
+  noise = n;
 }
 
 void Call_impl::set_tdma_slot(int m) {

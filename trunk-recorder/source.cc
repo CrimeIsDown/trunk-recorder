@@ -67,7 +67,17 @@ Source::Source(double c, double r, double e, std::string drv, std::string dev, C
   next_selector_port = 0;
 
   recorder_selector = gr::blocks::selector::make(sizeof(gr_complex), 0, 0);
-  signal_detector = signal_detector_cvf::make(rate, 1024, 0, -45, 0.8, false, 0.8, 0.01, 0.0, "");
+
+  // parameters for signal_detector_cvf
+  float threshold_sensitivity = 0.9;
+  float threshold = -45;
+  int fft_len = 1024;
+  float average = 0.8;
+  float quantization = 0.01;
+  float min_bw = 0.0;
+  float max_bw = 50000;
+
+  signal_detector = signal_detector_cvf::make(rate, fft_len, 0, threshold, threshold_sensitivity, true, average, quantization, min_bw, max_bw, "");
   BOOST_LOG_TRIVIAL(info) << "Made the Signal Detector";
 
   if (driver == "osmosdr") {
@@ -219,7 +229,6 @@ void Source::attach_selector(gr::top_block_sptr tb) {
 void Source::attach_detector(gr::top_block_sptr tb) {
   if (!attached_detector) {
     attached_detector = true;
-    signal_detector = signal_detector_cvf::make(rate, 1024, 0, -45, 0.8, false, 0.8, 0.01, 0.0, "");
     tb->connect(source_block, 0, signal_detector, 0);
   }
 }
@@ -360,9 +369,11 @@ int Source::get_if_gain() {
 
 /* -- Recorders -- */
 
-std::vector<Recorder *> Source::find_conventional_recorders_by_freq(double freq) {
+std::vector<Recorder *> Source::find_conventional_recorders_by_freq(Detected_Signal signal) {
+  double freq = center + signal.center_freq;
+
   std::vector<Recorder *> recorders;
-  long max_freq_diff = 5000;
+  long max_freq_diff = 12500;
   for (std::vector<p25_recorder_sptr>::iterator it = digital_conv_recorders.begin(); it != digital_conv_recorders.end(); it++) {
     p25_recorder_sptr rx = *it;
     double recorder_freq = rx->get_freq();
@@ -393,28 +404,25 @@ std::vector<Recorder *> Source::find_conventional_recorders_by_freq(double freq)
   return recorders;
 }
 
-std::vector<Recorder *> Source::get_detected_recorders() {
-  std::vector<Recorder *> detected_recorders;
-
+void Source::enable_detected_recorders() {
   std::vector<Detected_Signal> signals = signal_detector->get_detected_signals();
 
   for (std::vector<Detected_Signal>::iterator it = signals.begin(); it != signals.end(); it++) {
     Detected_Signal signal = *it;
 
-    float freq = center + signal.center_freq;
-    // float bandwidth = signal.bandwidth; // available data but not needed for anything
     float rssi = signal.max_rssi;
+    float threshold = signal.threshold;
 
-    std::vector<Recorder *> recorders = find_conventional_recorders_by_freq(freq);
+    std::vector<Recorder *> recorders = find_conventional_recorders_by_freq(signal);
     for (std::vector<Recorder *>::iterator it = recorders.begin(); it != recorders.end(); it++) {
       Recorder *recorder = *it;
       if (!recorder->is_enabled()) {
-        recorder->set_rssi(rssi);
+        recorder->set_enabled(true);
+
+        BOOST_LOG_TRIVIAL(info) << "\t[ " << recorder->get_num() << " ] " << recorder->get_type_string() << "\tEnabled - Freq: " << format_freq(recorder->get_freq()) << "\t Detected Signal: " << floor(rssi) << "dBM (Threshold: " << floor(threshold) << "dBM)";
       }
-      detected_recorders.push_back(recorder);
     }
   }
-  return detected_recorders;
 }
 
 void Source::set_signal_detector_threshold(float threshold) {
