@@ -79,6 +79,7 @@
 #include "../gr_blocks/transmission_sink.h"
 #include "../gr_blocks/xlat_channelizer.h"
 #include "../source.h"
+#include "../call_conventional.h"
 #include "dmr_recorder.h"
 #include "recorder.h"
 
@@ -93,6 +94,7 @@ public:
   bool start(Call *call);
   void stop();
   double get_freq();
+  int get_freq_error();
   int get_num();
   void set_tdma(bool phase2);
   void switch_tdma(bool phase2);

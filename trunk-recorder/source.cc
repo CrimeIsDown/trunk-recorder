@@ -70,6 +70,7 @@ Source::Source(double c, double r, double e, std::string drv, std::string dev, C
 
   // parameters for signal_detector_cvf
   float threshold_sensitivity = 0.9;
+  bool auto_threshold = true;
   float threshold = -45;
   int fft_len = 1024;
   float average = 0.8;
@@ -77,7 +78,7 @@ Source::Source(double c, double r, double e, std::string drv, std::string dev, C
   float min_bw = 0.0;
   float max_bw = 50000;
 
-  signal_detector = signal_detector_cvf::make(rate, fft_len, 0, threshold, threshold_sensitivity, true, average, quantization, min_bw, max_bw, "");
+  signal_detector = signal_detector_cvf::make(rate, fft_len, 0, threshold, threshold_sensitivity, auto_threshold, average, quantization, min_bw, max_bw, "");
   BOOST_LOG_TRIVIAL(info) << "Made the Signal Detector";
 
   if (driver == "osmosdr") {
@@ -418,7 +419,6 @@ void Source::enable_detected_recorders() {
       Recorder *recorder = *it;
       if (!recorder->is_enabled()) {
         recorder->set_enabled(true);
-
         BOOST_LOG_TRIVIAL(info) << "\t[ " << recorder->get_num() << " ] " << recorder->get_type_string() << "\tEnabled - Freq: " << format_freq(recorder->get_freq()) << "\t Detected Signal: " << floor(rssi) << "dBM (Threshold: " << floor(threshold) << "dBM)";
       }
     }
@@ -426,6 +426,7 @@ void Source::enable_detected_recorders() {
 }
 
 void Source::set_signal_detector_threshold(float threshold) {
+BOOST_LOG_TRIVIAL(info) << " - Setting Signal Detector Threshold to: " << threshold;
   signal_detector->set_threshold(threshold);
 }
 
@@ -553,18 +554,18 @@ void Source::create_debug_recorder(gr::top_block_sptr tb, int source_num) {
 
 Recorder *Source::get_analog_recorder(Talkgroup *talkgroup, int priority, Call *call) {
   int num_available_recorders = get_num_available_analog_recorders();
-
+  std::string loghdr = log_header( call->get_short_name(), call->get_call_num(), call->get_talkgroup_display(), call->get_freq());
   if (talkgroup && (priority == -1)) {
     call->set_state(MONITORING);
     call->set_monitoring_state(IGNORED_TG);
-    BOOST_LOG_TRIVIAL(info) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\tNot recording talkgroup. Priority is -1.";
+    BOOST_LOG_TRIVIAL(info) << loghdr << "Not recording talkgroup. Priority is -1.";
     return NULL;
   }
 
   if (talkgroup && priority > num_available_recorders) { // a high priority is bad. You need at least the number of availalbe recorders to your priority
     call->set_state(MONITORING);
     call->set_monitoring_state(NO_RECORDER);
-    BOOST_LOG_TRIVIAL(error) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\tNot recording talkgroup. Priority is " << priority << " but only " << num_available_recorders << " recorders are available.";
+    BOOST_LOG_TRIVIAL(error) << loghdr << "Not recording talkgroup. Priority is " << priority << " but only " << num_available_recorders << " recorders are available.";
     return NULL;
   }
 
@@ -582,24 +583,26 @@ Recorder *Source::get_analog_recorder(Call *call) {
       break;
     }
   }
-  BOOST_LOG_TRIVIAL(error) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\t[ " << device << " ] No Analog Recorders Available.";
+  std::string loghdr = log_header( call->get_short_name(), call->get_call_num(), call->get_talkgroup_display(), call->get_freq());
+  BOOST_LOG_TRIVIAL(error) << loghdr << "[ " << device << " ] No Analog Recorders Available.";
   return NULL;
 }
 
 Recorder *Source::get_digital_recorder(Talkgroup *talkgroup, int priority, Call *call) {
   int num_available_recorders = get_num_available_digital_recorders();
+  std::string loghdr = log_header( call->get_short_name(), call->get_call_num(), call->get_talkgroup_display(), call->get_freq());
 
   if (talkgroup && (priority == -1)) {
     call->set_state(MONITORING);
     call->set_monitoring_state(IGNORED_TG);
-    BOOST_LOG_TRIVIAL(info) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\tNot recording talkgroup. Priority is -1.";
+    BOOST_LOG_TRIVIAL(info) << loghdr << "Not recording talkgroup. Priority is -1.";
     return NULL;
   }
 
   if (talkgroup && priority > num_available_recorders) { // a high priority is bad. You need at least the number of availalbe recorders to your priority
     call->set_state(MONITORING);
     call->set_monitoring_state(NO_RECORDER);
-    BOOST_LOG_TRIVIAL(error) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\tNot recording talkgroup. Priority is " << priority << " but only " << num_available_recorders << " recorders are available.";
+    BOOST_LOG_TRIVIAL(error) << loghdr << "Not recording talkgroup. Priority is " << priority << " but only " << num_available_recorders << " recorders are available.";
     return NULL;
   }
 
@@ -617,8 +620,8 @@ Recorder *Source::get_digital_recorder(Call *call) {
       break;
     }
   }
-
-  BOOST_LOG_TRIVIAL(error) << "[" << call->get_system()->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << call->get_talkgroup_display() << "\tFreq: " << format_freq(call->get_freq()) << "\t[ " << device << " ] No Digital Recorders Available.";
+  std::string loghdr = log_header( call->get_short_name(), call->get_call_num(), call->get_talkgroup_display(), call->get_freq());
+  BOOST_LOG_TRIVIAL(error) << loghdr << "[ " << device << " ] No Digital Recorders Available.";
 
   for (std::vector<p25_recorder_sptr>::iterator it = digital_recorders.begin();
        it != digital_recorders.end(); it++) {

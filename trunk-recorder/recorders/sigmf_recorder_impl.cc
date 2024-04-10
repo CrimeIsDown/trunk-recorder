@@ -89,6 +89,10 @@ double sigmf_recorder_impl::get_freq() {
   return freq;
 }
 
+int sigmf_recorder_impl::get_freq_error() { // get frequency error from FLL and convert to Hz
+  return prefilter->get_freq_error();
+}
+
 double sigmf_recorder_impl::get_current_length() {
   return 0;
 }
@@ -114,7 +118,8 @@ State sigmf_recorder_impl::get_state() {
 
 void sigmf_recorder_impl::stop() {
   if (state == ACTIVE) {
-    BOOST_LOG_TRIVIAL(info) << "[" << call->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << this->call->get_talkgroup_display() << "\tFreq: " << format_freq(freq) << "\t\u001b[32mStopping SigMF Recorder Num [" << rec_num << "]\u001b[0m";
+    std::string loghdr = log_header(this->call->get_short_name(),this->call->get_call_num(),this->call->get_talkgroup_display(),freq);
+    BOOST_LOG_TRIVIAL(info) << loghdr << "\u001b[32mStopping SigMF Recorder Num [" << rec_num << "]\u001b[0m";
 
     state = INACTIVE;
     set_enabled(false);
@@ -134,12 +139,13 @@ bool sigmf_recorder_impl::start(Call *call) {
     System *system = call->get_system();
     talkgroup = call->get_talkgroup();
     freq = call->get_freq();
-    squelch_db = system->get_squelch_db();
-    prefilter->set_squelch_db(squelch_db);
+    
     int offset_amount = (center - freq);
     prefilter->tune_offset(offset_amount);
+    
     //freq_xlat->set_center_freq(-offset_amount);
-    BOOST_LOG_TRIVIAL(info) << "[" << call->get_short_name() << "]\t\033[0;34m" << call->get_call_num() << "C\033[0m\tTG: " << this->call->get_talkgroup_display() << "\tFreq: " << format_freq(freq) << "\t\u001b[32mStarting SigMF Recorder Num [" << rec_num << "]\u001b[0m";
+    std::string loghdr = log_header(this->call->get_short_name(),this->call->get_call_num(),this->call->get_talkgroup_display(),freq);
+    BOOST_LOG_TRIVIAL(info) << loghdr << "\u001b[32mStarting SigMF Recorder Num [" << rec_num << "]\u001b[0m";
 
     std::stringstream path_stream;
 
@@ -155,11 +161,21 @@ bool sigmf_recorder_impl::start(Call *call) {
 
     raw_sink->open(filename);
     state = ACTIVE;
- if (conventional) {
+
+  if (conventional) {
+    Call_conventional *conventional_call = dynamic_cast<Call_conventional *>(call);
+    squelch_db = conventional_call->get_squelch_db();
+    if (conventional_call->get_signal_detection()) {
       set_enabled(false);
     } else {
-      set_enabled(true);
+      set_enabled(true); // If signal detection is not being used, open up the Value/Selector from the start
     }
+  } else {
+    squelch_db = system->get_squelch_db();
+    set_enabled(true);
+  }
+  prefilter->set_squelch_db(squelch_db);
+
     std::string src_description = source->get_driver() + ": " + source->get_device() + " - " + source->get_antenna();
     time_t now;
     time(&now);

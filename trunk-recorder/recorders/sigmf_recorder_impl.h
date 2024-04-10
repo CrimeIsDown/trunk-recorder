@@ -74,6 +74,7 @@
 #include "recorder.h"
 
 #include "../source.h"
+#include "../call_conventional.h"
 
 class sigmf_recorder_impl : public sigmf_recorder {
 
@@ -82,6 +83,7 @@ public:
   bool start(Call *call);
   void stop();
   double get_freq();
+  int get_freq_error();
   int get_num();
   double get_current_length();
   void set_enabled(bool enabled);
