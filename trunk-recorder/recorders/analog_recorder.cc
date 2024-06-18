@@ -115,7 +115,7 @@ analog_recorder::analog_recorder(Source *src, Recorder_Type type, float tone_fre
 
   int samp_per_sym        = 2;
   double bandwidth = 12000;
-  system_channel_rate = 16000; // 4800 * samp_per_sym;
+  system_channel_rate = 96000; // 4800 * samp_per_sym;
   wav_sample_rate = 16000;     // Must be an integer decimation of system_channel_rate
 
   // The Prefilter provides the initial squelch for the channel
@@ -144,7 +144,7 @@ analog_recorder::analog_recorder(Source *src, Recorder_Type type, float tone_fre
   d_fftaps.resize(2);
   d_fbtaps.resize(2);
   calculate_iir_taps(d_tau);
-  deemph = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
+  deemph = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps, false);
 
   audio_resampler_taps = design_filter(1, (system_channel_rate / wav_sample_rate)); // Calculated to make sample rate changable -- must be an integer
 
@@ -188,15 +188,16 @@ analog_recorder::analog_recorder(Source *src, Recorder_Type type, float tone_fre
   connect(demod, 0, deemph, 0);
   if (use_tone_squelch) {
     connect(deemph, 0, tone_squelch, 0); 
-      connect(tone_squelch, 0, squelch_two, 0);
+      connect(tone_squelch, 0, decim_audio, 0);
   } else {
-    connect(deemph, 0, squelch_two, 0);
+    connect(deemph, 0, decim_audio, 0);
   }
 
-  connect(squelch_two, 0, decoder_sink, 0);
-  connect(squelch_two, 0, high_f, 0);
+  connect(decim_audio, 0, decoder_sink, 0);
+  connect(decim_audio, 0, high_f, 0);
   connect(high_f, 0, low_f, 0);
-  connect(low_f, 0, levels, 0);
+  connect(low_f, 0, squelch_two, 0);
+  connect(squelch_two, 0, levels, 0);
   connect(levels, 0, converter, 0);
   connect(converter, 0, wav_sink, 0);
 
@@ -358,14 +359,12 @@ bool analog_recorder::start(Call *call) {
 
 
   // BOOST_LOG_TRIVIAL(error) << "Setting squelch to: " << squelch_db << " block says: " << squelch->threshold();
+  
   levels->set_k(system->get_analog_levels());
   int d_max_dev = system->get_max_dev();
-  /*
-  channel_lpf_taps = gr::filter::firdes::low_pass_2(1.0, initial_rate, d_max_dev, 1000, 100);
-  channel_lpf->set_taps(channel_lpf_taps);*/
+  prefilter->set_max_dev(d_max_dev);
   quad_gain = system_channel_rate / (2.0 * M_PI * (d_max_dev + 1000));
   demod->set_gain(quad_gain);
-
   int offset_amount = (center_freq - chan_freq);
   prefilter->tune_offset(offset_amount);
 
@@ -386,7 +385,7 @@ bool analog_recorder::start(Call *call) {
   }
   
   std::string loghdr = log_header(call->get_short_name(),call->get_call_num(),this->call->get_talkgroup_display(),chan_freq);
-  BOOST_LOG_TRIVIAL(info) << loghdr << "\u001b[32mStarting Analog Recorder Num [" << rec_num << "]\u001b[0m \tSquelch: " << squelch_db;
+  BOOST_LOG_TRIVIAL(info) << loghdr << "\u001b[32mStarting Analog Recorder Num [" << rec_num << "]\u001b[0m \tSquelch: " << squelch_db << " Max Dev: " << d_max_dev << " Gain: " << quad_gain;
   prefilter->set_squelch_db(squelch_db);
   return true;
 }
