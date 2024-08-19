@@ -333,6 +333,13 @@ Call_Data_t Call_Concluder::create_call_data(Call *call, System *sys, Config con
   call_info.patched_talkgroups = sys->get_talkgroup_patch(call_info.talkgroup);
   call_info.min_transmissions_removed = 0;
 
+  std::string multiSiteSystemName = sys->get_multiSiteSystemName();
+  if (multiSiteSystemName != "") {
+    call_info.short_name = multiSiteSystemName;
+  } else {
+    call_info.short_name = sys->get_short_name();
+  }
+
   Talkgroup *tg = sys->find_talkgroup(call->get_talkgroup());
   if (tg != NULL) {
     call_info.talkgroup_tag = tg->tag;
