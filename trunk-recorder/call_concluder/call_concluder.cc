@@ -365,6 +365,13 @@ Call_Data_t Call_Concluder::create_call_data(Call *call, System *sys, Config con
 
   std::string loghdr = log_header( call_info.short_name, call_info.call_num, call_info.talkgroup_display , call_info.freq);
 
+  std::string multiSiteSystemName = sys->get_multiSiteSystemName();
+  if (multiSiteSystemName != "") {
+    call_info.short_name = multiSiteSystemName;
+  } else {
+    call_info.short_name = sys->get_short_name();
+  }
+
   if (call->get_is_analog()) {
     call_info.audio_type = "analog";
   } else if (call->get_phase2_tdma()) {
