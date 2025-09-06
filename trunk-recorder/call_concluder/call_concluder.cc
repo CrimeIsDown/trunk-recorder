@@ -1073,6 +1073,9 @@ Call_Data_t Call_Concluder::create_call_data(Call *call, System *sys, const Conf
   call_info.min_transmissions_removed = 0;
   call_info.color_code                = -1;
 
+  const std::string multiSiteSystemName = sys->get_multiSiteSystemName();
+  if (!multiSiteSystemName.empty()) call_info.short_name = multiSiteSystemName;
+
   const std::string loghdr =
       log_header(call_info.short_name, call_info.call_num, call_info.talkgroup_display, call_info.freq);
 
