@@ -82,7 +82,7 @@ RUN cmake .. && make -j$(nproc) && make DESTDIR=/newroot install
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates gr-funcube gr-iqbal curl wget rsync libboost-log1.74.0 \
     libboost-chrono1.74.0 libgnuradio-digital3.10.1 libgnuradio-analog3.10.1 libgnuradio-filter3.10.1 libgnuradio-network3.10.1  \
-    libgnuradio-uhd3.10.1 libsoapysdr0.8 soapysdr0.8-module-all libairspyhf1 libfreesrp0 libxtrx0 sox fdkaac docker.io && \
+    libgnuradio-uhd3.10.1 libsoapysdr0.8 soapysdr0.8-module-all libairspyhf1 libfreesrp0 libxtrx0 sox fdkaac docker.io tini && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /newroot /
@@ -95,4 +95,5 @@ WORKDIR /app
 ENV HOME=/tmp
 
 #USER nobody
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["trunk-recorder", "--config=/app/config.json"]
